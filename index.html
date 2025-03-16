@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animated Face</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+    .corner-text {
+      position: absolute;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: rgba(200, 200, 200, 0.8);
+    }
+    .top-center-text {
+      position: absolute;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 20px;
+      color: rgba(200, 200, 200, 0.8);
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  </style>
+</head>
+<body>
+  <div class="corner-text" style="cursor:default; top: 10px; left: 10px;">welcome</div>
+  <div onclick="window.location='https://www.instagram.com/maff_me_around/';" class="corner-text" style="cursor:help; top: 10px; right: 10px;">maff_me_around</div>
+  <div class="corner-text" style="cursor:default; bottom: 10px; left: 10px;">version 1.0</div>
+  <div onclick="window.location='https://www.maffeilorenzo.com/';" class="corner-text" style="cursor:help; bottom: 10px; right: 10px;">maffeilorenzo.com</div>
+  <div class="top-center-text" style="cursor:default;">glyphsface -.-</div>
+
+  <script>
+    let eyeX1, eyeY1, eyeX2, eyeY2;
+    let mouthX, mouthY;
+    let canvasX = 0, canvasY = 0;
+    let maxCanvasOffset = 100; // Limite massimo dello spostamento del canvas
+
+    const eyeChars = ["o", "O", "0", "|", "*", "@", "-", "!", "$", "'", "^", "°", "ù", "?"];
+    const mouthChars = [".", "-", "_", "=", "v", "w", "U", "x", "+", "*", "@", "u", "o"];
+
+    let lerpFactor = 0.04;
+    let canvasLerpFactor = 0.08;
+    let mouthSize = 40;
+    let faceMovementDistance = 800;
+    let eyeSize = 80;
+
+    let currentEye1, currentEye2, currentMouth;
+
+    let minEyeDistance = 90;
+    let maxEyeDistance = 140;
+    let minMouthDistance = 10;
+    let maxMouthDistance = 60;
+
+    let eyeColor;
+    let mouthColor;
+    let bgColor;
+
+    let prevMouseX, prevMouseY;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      textAlign(CENTER, CENTER);
+      textFont("IBM Plex Mono");
+      textSize(50);
+
+      currentEye1 = random(eyeChars);
+      currentEye2 = currentEye1;
+      currentMouth = random(mouthChars);
+
+      eyeColor = color(random(255), random(255), random(255));
+      mouthColor = color(random(255), random(255), random(255));
+      bgColor = color(255);
+
+      resetFace();
+      frameRate(25);
+
+      prevMouseX = mouseX;
+      prevMouseY = mouseY;
+    }
+
+    function draw() {
+      if (mouseIsPressed) {
+        bgColor = color(random(255), random(255), random(255));
+      } else {
+        bgColor = color(255);
+      }
+
+      background(bgColor);
+
+      // Movimento controllato del canvas
+      let targetCanvasX = map(mouseX, 0, width, -maxCanvasOffset, maxCanvasOffset);
+      let targetCanvasY = map(mouseY, 0, height, -maxCanvasOffset, maxCanvasOffset);
+
+      canvasX = lerp(canvasX, targetCanvasX, canvasLerpFactor);
+      canvasY = lerp(canvasY, targetCanvasY, canvasLerpFactor);
+
+      push();
+      translate(canvasX, canvasY);
+
+      moveFace();
+      createAnimatedFace();
+
+      pop();
+
+      if (mouseIsPressed) {
+        updateFaceFast();
+        eyeSize = 40;
+        mouthSize = 30;
+      } else {
+        eyeSize = 80;
+        mouthSize = 40;
+
+        if (mouseMoved()) {
+          updateFace();
+        }
+      }
+    }
+
+    function resetFace() {
+      let faceOffset = -50;
+      eyeX1 = width / 3;
+      eyeY1 = height / 2 + faceOffset;
+
+      eyeX2 = width / 3 + 60;
+      eyeY2 = height / 2 + faceOffset;
+
+      mouthX = width / 2;
+      mouthY = height / 2 + 40 + faceOffset;
+    }
+
+    function createAnimatedFace() {
+      fill(eyeColor);
+      textSize(eyeSize);
+      text(currentEye1, eyeX1, eyeY1);
+      text(currentEye2, eyeX2, eyeY2);
+
+      fill(mouthColor);
+      textSize(mouthSize);
+      text(currentMouth, mouthX, mouthY);
+    }
+
+    function moveFace() {
+      let angle = atan2(mouseY - height / 2, mouseX - width / 2);
+      let eyeDistance = map(abs(mouseX - width / 2), 0, width / 2, maxEyeDistance, minEyeDistance);
+
+      if (mouseX < width / 2) {
+        eyeX1 = width / 2 - eyeDistance / 2;
+        eyeX2 = width / 2 + eyeDistance / 2;
+      } else {
+        eyeX1 = width / 2 - eyeDistance / 2;
+        eyeX2 = width / 2 + eyeDistance / 2;
+      }
+
+      let mouthDistance = map(mouseY, 0, height, minMouthDistance, maxMouthDistance);
+
+      let targetX1 = width / 2 + cos(angle) * faceMovementDistance;
+      let targetY1 = height / 2 + sin(angle) * faceMovementDistance * 1.6;
+
+      let newFaceX = lerp(width / 2, targetX1, lerpFactor);
+      let newFaceY = lerp(height / 2, targetY1, lerpFactor) - 50;
+
+      eyeY1 = newFaceY;
+      eyeY2 = newFaceY;
+
+      mouthX = newFaceX;
+      mouthY = newFaceY + mouthDistance;
+    }
+
+    function updateFace() {
+      currentEye1 = random(eyeChars);
+      currentEye2 = currentEye1;
+      currentMouth = random(mouthChars);
+    }
+
+    function updateFaceFast() {
+      currentEye1 = random(eyeChars);
+      currentEye2 = currentEye1;
+      currentMouth = random(mouthChars);
+
+      eyeColor = color(random(255), random(255), random(255));
+      mouthColor = color(random(255), random(255), random(255));
+    }
+
+    function mouseMoved() {
+      let moved = (mouseX !== prevMouseX || mouseY !== prevMouseY);
+      prevMouseX = mouseX;
+      prevMouseY = mouseY;
+      return moved;
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+  </script>
+</body>
+</html>
