@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Negative con Interazioni</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #fff;
+            cursor: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="35" height="35"%3E%3Ccircle cx="18" cy="18" r="7" fill="black"/%3E%3C/svg%3E'), auto; /* Grande cursore nero personalizzato */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .background-text {
+            position: absolute;
+            font-size: 9vw;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 400;
+            color: #000;
+            user-select: none;
+            text-transform: lowercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0em;
+        }
+        .emoji-o {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.3em; /* Larghezza della "o" */
+            height: 1em; /* Altezza per centrare */
+            font-size: 0.4em; /* Metà della grandezza del testo */
+            transform: translateY(30%); /* Abbassa leggermente l'emoji */
+        }
+        .emoji {
+            position: absolute;
+            font-size: 40px; /* Dimensione fissa */
+            pointer-events: none;
+            user-select: none;
+        }
+        .letter {
+            display: inline-block;
+            transition: transform 0.2s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-text">
+        <span class="letter">m</span><span class="emoji-o">🤮</span><span class="letter">n</span><span class="letter">d</span><span class="letter">a</span><span class="letter">y</span>
+    </div>
+
+    <script>
+        const negativeEmojis = ["😢", "😞", "😠", "😭", "😡", "😖", "😣", "😔", "😨", "😩", "😰", "🙁", "😵‍💫", "🤮"];
+        let lastX = 0, lastY = 0;
+        let lastTime = 0;
+        const emojiO = document.querySelector(".emoji-o");
+
+        // Cambia l'emoji "o" ogni 1 secondo
+        setInterval(() => {
+            emojiO.textContent = negativeEmojis[Math.floor(Math.random() * negativeEmojis.length)];
+        }, 1000);
+
+        document.addEventListener("mousemove", (event) => {
+            let now = Date.now();
+            let deltaTime = now - lastTime;
+            let dx = event.clientX - lastX;
+            let dy = event.clientY - lastY;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 30) return; // Evita di creare emoji troppo vicine
+            lastX = event.clientX;
+            lastY = event.clientY;
+            lastTime = now;
+
+            const emoji = document.createElement("div");
+            emoji.classList.add("emoji");
+            emoji.textContent = negativeEmojis[Math.floor(Math.random() * negativeEmojis.length)];
+            document.body.appendChild(emoji);
+
+            emoji.style.left = `${event.clientX}px`;
+            emoji.style.top = `${event.clientY}px`;
+
+            // Calcola velocità e inerzia
+            let speed = Math.min(distance / deltaTime * 5, 2); // Ridotta un po' l'inerzia
+            let angle = Math.atan2(dy, dx);
+            let vx = Math.cos(angle) * speed;
+            let vy = Math.sin(angle) * speed;
+
+            function moveEmoji() {
+                vx *= 0.85; // Inerzia più ridotta
+                vy *= 0.85;
+                emoji.style.left = `${parseFloat(emoji.style.left) + vx}px`;
+                emoji.style.top = `${parseFloat(emoji.style.top) + vy}px`;
+                if (Math.abs(vx) > 0.2 || Math.abs(vy) > 0.2) {
+                    requestAnimationFrame(moveEmoji);
+                }
+            }
+            moveEmoji();
+
+            setTimeout(() => emoji.remove(), 2500); // Durata fissa prima di sparire
+        });
+
+        // Effetto di respinta se il mouse passa vicino a un'emoji o una lettera
+        document.addEventListener("mousemove", (event) => {
+            // Respingi le emoji
+            document.querySelectorAll(".emoji").forEach(emoji => {
+                let ex = parseFloat(emoji.style.left);
+                let ey = parseFloat(emoji.style.top);
+                let dx = event.clientX - ex;
+                let dy = event.clientY - ey;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 50) { // Se il mouse è vicino all'emoji, la respinge
+                    let angle = Math.atan2(dy, dx);
+                    let force = (50 - distance) / 15; // Più vicino, più forte la spinta
+                    let vx = Math.cos(angle) * -force;
+                    let vy = Math.sin(angle) * -force;
+
+                    function repel() {
+                        vx *= 0.9;
+                        vy *= 0.9;
+                        emoji.style.left = `${parseFloat(emoji.style.left) + vx}px`;
+                        emoji.style.top = `${parseFloat(emoji.style.top) + vy}px`;
+                        if (Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1) {
+                            requestAnimationFrame(repel);
+                        }
+                    }
+                    repel();
+                }
+            });
+
+            // Respingi le lettere
+            document.querySelectorAll(".letter").forEach(letter => {
+                let rect = letter.getBoundingClientRect();
+                let lx = rect.left + rect.width / 2;
+                let ly = rect.top + rect.height / 2;
+                let dx = event.clientX - lx;
+                let dy = event.clientY - ly;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 100) { // Se il mouse è vicino alla lettera, la respinge
+                    let angle = Math.atan2(dy, dx);
+                    let force = (150 - distance) / 5; // Più vicino, più forte la spinta
+                    let vx = Math.cos(angle) * -force;
+                    let vy = Math.sin(angle) * -force;
+
+                    function repelLetter() {
+                        letter.style.transform = `translate(${vx}px, ${vy}px)`;
+                        vx *= 0.95;
+                        vy *= 0.95;
+                        if (Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1) {
+                            requestAnimationFrame(repelLetter);
+                        } else {
+                            letter.style.transform = "translate(0, 0)"; // Ripristina la posizione
+                        }
+                    }
+                    repelLetter();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
